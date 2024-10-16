@@ -232,7 +232,6 @@ List<HASHtable<string>> readTableContent(string tableName)//, List<string> colum
             getline(tableFile,firstLine);
 
             columnValues = getColumnNames(firstLine);
-            columnValues.Print();
             for (int j = 0; j < columnValues.GetSize(); j++)
             {
                 row.HSET(TABLECOLUMNS.getElement(j),columnValues.getElement(j));
@@ -276,7 +275,7 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
     if(tableFile.bad())
     {
         cerr << "Wrong tablename!" << endl;
-        exit(-1);
+        return;
     }
 
     getline(tableFile, firstLine);
@@ -285,7 +284,7 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
 
     // Открываем CSV файл в режиме добавления (или создаем новый с очисткой)
     ofstream newTableFile(tablePath, std::ios::out | std::ios::trunc);
-    if (!tableFile.is_open()) {
+    if (!newTableFile.is_open()) {
         cerr << "Error: Could not open or create table file." << std::endl;
         return;
     }
@@ -293,25 +292,23 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
     // --- Записываем заголовки только один раз (если файл пустой) ---
     if (isFileEmpty(tablePath)) {
         for (size_t j = 0; j < TABLECOLUMNS.GetSize(); ++j) {
-            tableFile << TABLECOLUMNS.getElement(j);
+            newTableFile << TABLECOLUMNS.getElement(j);
             if (j < TABLECOLUMNS.GetSize() - 1) {
                 tableFile << ",";  // Запятая между заголовками
             }
         }
-        tableFile << " ";
-        tableFile << '\n';  // Переход на новую строку после заголовков
+        newTableFile << '\n';  // Переход на новую строку после заголовков
     }
 
     // --- Записываем строки данных ---
     for (int i = 1; i < table.GetSize(); ++i) {
         for (size_t j = 0; j < TABLECOLUMNS.GetSize(); ++j) {
-            tableFile << table.getElement(i).HGET(TABLECOLUMNS.getElement(j));
+            newTableFile << table.getElement(i).HGET(TABLECOLUMNS.getElement(j));
             if (j < TABLECOLUMNS.GetSize() - 1) {
-                tableFile << ",";  // Запятая между значениями
+                newTableFile << ",";  // Запятая между значениями
             }
         }
-        tableFile << " ";
-        tableFile << '\n';  // Переход на новую строку после каждой строки данных
+        newTableFile << '\n';  // Переход на новую строку после каждой строки данных
     }
 
     newTableFile.close();  // Закрываем файл

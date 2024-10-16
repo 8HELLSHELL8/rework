@@ -39,7 +39,7 @@ public:
 			while (currentNode)
 			{
 				NodeLL<T>* curNext = currentNode->nextNode;
-				delete[] currentNode;
+				delete currentNode;
 				currentNode = curNext;
 			}
 			head = nullptr;
