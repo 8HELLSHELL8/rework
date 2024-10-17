@@ -166,7 +166,7 @@ string subString(string oldLine, int startIndex, int endIndex)
     return newLine;
 }
 
-List<string> getColumnNames(string& rawLine)
+List<string> splitLineIntoColumns(string& rawLine)
 {
     string columnLetters;
     List<string> columnName{"Empty"};
@@ -185,68 +185,63 @@ List<string> getColumnNames(string& rawLine)
     return columnName;
 }
 
-List<HASHtable<string>> readTableContent(string tableName)//, List<string> columnNames)
+List<HASHtable<string>> readTableContent(string tableName)
 {
     HASHtable<string> dummy;
-    
     List<HASHtable<string>> fullTable{dummy};
-    string firstLine;
+    string currentLine;
 
+    // Открытие CSV-файла
     fstream tableFile("Схема 1/" + tableName + "/1.csv");
-    if(tableFile.bad())
-    {
+    if (!tableFile.is_open()) {
         cerr << "Wrong tablename!" << endl;
         exit(-1);
     }
 
-    getline(tableFile, firstLine);
-    List<string> TABLECOLUMNS = getColumnNames(firstLine);
-
+    // Чтение заголовков таблицы
+    getline(tableFile, currentLine);
+    List<string> TABLECOLUMNS = splitLineIntoColumns(currentLine);
     int tableWidth = TABLECOLUMNS.GetSize();
-    HASHtable<string> row(tableWidth);
 
-    for(int i = 0; i < TABLECOLUMNS.GetSize(); i++) // dobavlenie pervoi stroki
-    {
-        row.HSET(to_string(i), TABLECOLUMNS.getElement(i));
-    }
-    fullTable.LPUSH(row);
-    fullTable.LDEL(0);
-
-    string pkSeqContent;
+    // Открытие sequence-файла
     fstream pkSeq("Схема 1/" + tableName+ "/" + tableName + "_pk_sequence");
+    if (!pkSeq.is_open()) {
+        cerr << "Error: Could not open sequence file." << endl;
+        exit(-1);
+    }
+
+    // Чтение количества строк в таблице
+    string pkSeqContent;
     getline(pkSeq, pkSeqContent);
     pkSeq.close();
     
     int amountOfLinesInTable = stoi(pkSeqContent);
-    
-    if (amountOfLinesInTable == 1)
-    {
+
+    // Если в таблице только заголовок, возвращаем её
+    if (amountOfLinesInTable == 1) {
         return fullTable;
     }
-    else
-    {
-        for (int i = 0; i < amountOfLinesInTable-1; i++)
-        {   
-            HASHtable<string> row(tableWidth);
-            List<string> columnValues{"empty"};
-            getline(tableFile,firstLine);
 
-            columnValues = getColumnNames(firstLine);
-            for (int j = 0; j < columnValues.GetSize(); j++)
-            {
-                row.HSET(TABLECOLUMNS.getElement(j),columnValues.getElement(j));
-            }
-            
-            fullTable.LPUSH(row);  
+    // Чтение строк данных
+    for (int i = 1; i < amountOfLinesInTable; i++) {
+        HASHtable<string> row(tableWidth);
+        getline(tableFile, currentLine);
+
+        // Разбиваем строку на значения столбцов
+        List<string> columnValues = splitLineIntoColumns(currentLine);
+
+        // Сопоставляем значения с названиями столбцов
+        for (int j = 0; j < columnValues.GetSize(); j++) {
+            row.HSET(TABLECOLUMNS.getElement(j), columnValues.getElement(j));
         }
-          
-    }
-   
-    
-    tableFile.close();
-    return fullTable;
 
+        fullTable.LPUSH(row);  
+    }
+    fullTable.LDEL(0);
+    tableFile.close();  // Закрываем файл
+    return fullTable;  // Возвращаем заполненную таблицу
 }
+
 
 void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
 {
@@ -279,7 +274,7 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
     }
 
     getline(tableFile, firstLine);
-    List<string> TABLECOLUMNS = getColumnNames(firstLine);
+    List<string> TABLECOLUMNS = splitLineIntoColumns(firstLine);
     tableFile.close();
 
     // Открываем CSV файл в режиме добавления (или создаем новый с очисткой)
@@ -352,7 +347,7 @@ void insertIntoTable(List<HASHtable<string>>& table, const string& pathToDir,
     }
     string firstLine;
     getline(tableFile, firstLine);
-    List<string> columnNames = getColumnNames(firstLine);
+    List<string> columnNames = splitLineIntoColumns(firstLine);
     tableFile.close();
 
 
