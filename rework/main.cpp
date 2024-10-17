@@ -144,19 +144,36 @@ void increaseSequence(const string& pathToDir)
 {
     string currentNum;
 
+    // Открытие файла для чтения
     ifstream pk_seqRead("Схема 1/" + pathToDir + "/" + pathToDir + "_pk_sequence");
-    if (pk_seqRead.bad()) cerr << "Error with pk_seq";
-    getline(pk_seqRead,currentNum,'\n');
+    if (!pk_seqRead.is_open()) {
+        cerr << "Error opening pk_sequence file for reading." << endl;
+        return;
+    }
+
+    // Чтение текущего номера
+    getline(pk_seqRead, currentNum);
     pk_seqRead.close();
 
+    // Проверка, что текущий номер успешно считан
+    if (currentNum.empty()) {
+        cerr << "Error: sequence file is empty or could not be read." << endl;
+        return;
+    }
+
+    // Открытие файла для записи
     ofstream pk_seqWrite("Схема 1/" + pathToDir + "/" + pathToDir + "_pk_sequence");
-    if (pk_seqWrite.bad()) cerr << "Error with pk_seq";
-    pk_seqWrite << stoi(currentNum)+1;
+    if (!pk_seqWrite.is_open()) {
+        cerr << "Error opening pk_sequence file for writing." << endl;
+        return;
+    }
+
+    // Увеличение значения и запись его обратно в файл
+    pk_seqWrite << stoi(currentNum) + 1;
     pk_seqWrite.close();
-    
 }
 
-string subString(string oldLine, int startIndex, int endIndex)
+string subString(const string& oldLine, int startIndex, int endIndex)
 {
     string newLine = "";
     for (int i = startIndex; i < endIndex; i++)
@@ -187,8 +204,7 @@ List<string> splitLineIntoColumns(string& rawLine)
 
 List<HASHtable<string>> readTableContent(string tableName)
 {
-    HASHtable<string> dummy;
-    List<HASHtable<string>> fullTable{dummy};
+    List<HASHtable<string>> fullTable;  // Начинаем с пустого списка
     string currentLine;
 
     // Открытие CSV-файла
@@ -200,8 +216,8 @@ List<HASHtable<string>> readTableContent(string tableName)
 
     // Чтение заголовков таблицы
     getline(tableFile, currentLine);
-    List<string> TABLECOLUMNS = splitLineIntoColumns(currentLine);
-    int tableWidth = TABLECOLUMNS.GetSize();
+    List<string> TABLECOLUMNS = splitLineIntoColumns(currentLine);  // Разделяем первую строку на столбцы
+    int tableWidth = TABLECOLUMNS.GetSize();  // Определяем количество столбцов
 
     // Открытие sequence-файла
     fstream pkSeq("Схема 1/" + tableName+ "/" + tableName + "_pk_sequence");
@@ -215,11 +231,11 @@ List<HASHtable<string>> readTableContent(string tableName)
     getline(pkSeq, pkSeqContent);
     pkSeq.close();
     
-    int amountOfLinesInTable = stoi(pkSeqContent);
+    int amountOfLinesInTable = stoi(pkSeqContent);  // Количество строк данных в таблице
 
-    // Если в таблице только заголовок, возвращаем её
+    // Если в таблице только заголовок, возвращаем пустую таблицу
     if (amountOfLinesInTable == 1) {
-        return fullTable;
+        return fullTable;  // Пустая таблица
     }
 
     // Чтение строк данных
@@ -235,12 +251,14 @@ List<HASHtable<string>> readTableContent(string tableName)
             row.HSET(TABLECOLUMNS.getElement(j), columnValues.getElement(j));
         }
 
+        // Добавляем строку в таблицу
         fullTable.LPUSH(row);  
     }
-    fullTable.LDEL(0);
+
     tableFile.close();  // Закрываем файл
     return fullTable;  // Возвращаем заполненную таблицу
 }
+
 
 
 void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
@@ -249,9 +267,11 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
     
     std::string sequencePath = "Схема 1/" + pathToDir + "/" + pathToDir + "_pk_sequence";
     std::string tablePath = "Схема 1/" + pathToDir + "/1.csv";
+
     
     cout << pathToDir << endl;
     cout << sequencePath << endl << tablePath << endl;
+    cout << "STILL WORKING1!!!" << endl;
 
     // Чтение количества строк из sequence-файла
     std::string pk_seqInput;
@@ -277,8 +297,10 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
     List<string> TABLECOLUMNS = splitLineIntoColumns(firstLine);
     tableFile.close();
 
+    cout << "STILL WORKING2!!!" << endl;
+
     // Открываем CSV файл в режиме добавления (или создаем новый с очисткой)
-    ofstream newTableFile(tablePath, std::ios::out | std::ios::trunc);
+    ofstream newTableFile(tablePath, std::ios::out);
     if (!newTableFile.is_open()) {
         cerr << "Error: Could not open or create table file." << std::endl;
         return;
@@ -288,12 +310,13 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
     if (isFileEmpty(tablePath)) {
         for (size_t j = 0; j < TABLECOLUMNS.GetSize(); ++j) {
             newTableFile << TABLECOLUMNS.getElement(j);
-            if (j < TABLECOLUMNS.GetSize() - 1) {
-                tableFile << ",";  // Запятая между заголовками
-            }
+            if (j < TABLECOLUMNS.GetSize()-1) newTableFile << ",";
         }
         newTableFile << '\n';  // Переход на новую строку после заголовков
     }
+
+    cout << "STILL WORKING3!!!" << endl;
+
 
     // --- Записываем строки данных ---
     for (int i = 1; i < table.GetSize(); ++i) {
@@ -307,13 +330,16 @@ void writeOutTableFile(List<HASHtable<string>>& table, const string& pathToDir)
     }
 
     newTableFile.close();  // Закрываем файл
-
+    cout << "STILL WORKING4!!!" << endl;
     // Обновляем sequence-файл с новым количеством строк
     std::ofstream pk_seq_out(sequencePath, std::ios::out | std::ios::trunc);
     if (pk_seq_out.is_open()) {
         pk_seq_out << table.GetSize();  // Обновляем количество строк
         pk_seq_out.close();
     }
+
+    cout << "STILL WORKING5!!!" << endl;
+
 }
 
 // void deleteFromTable(string tableName, string condition)
@@ -338,7 +364,7 @@ void insertIntoTable(List<HASHtable<string>>& table, const string& pathToDir,
                      List<string>& values)
 {
     lockTable(pathToDir);  // Блокируем таблицу
-
+    cout << "STILL WORKING6" << endl;
     fstream tableFile("Схема 1/" + pathToDir + "/1.csv");
     if(tableFile.bad())
     {
@@ -350,6 +376,7 @@ void insertIntoTable(List<HASHtable<string>>& table, const string& pathToDir,
     List<string> columnNames = splitLineIntoColumns(firstLine);
     tableFile.close();
 
+    cout << "STILL WORKING7" << endl;
 
     int tableWidth = columnNames.GetSize();
     HASHtable<string> loadline;
@@ -389,11 +416,12 @@ void insertIntoTable(List<HASHtable<string>>& table, const string& pathToDir,
             table.LPUSH(loadline);  // Добавляем строку в таблицу
         }
     }
+    cout << "STILL WORKING8" << endl;
 
     // Увеличиваем счетчик строк и записываем таблицу в файл
     increaseSequence(pathToDir);
     writeOutTableFile(table, pathToDir);
-
+    cout << "STILL WORKING9" << endl;
     unlockTable(pathToDir);  // Разблокируем таблицу
 }
 

@@ -9,53 +9,53 @@ struct NodeLL
     T value;
     NodeLL* previousNode;
     NodeLL* nextNode;
+
+    NodeLL(T val) : value(val), previousNode(nullptr), nextNode(nullptr) {}
 };
 
 template<typename T>
-class List
+struct List
 {
 private:
-    NodeLL<T>* tail;
     NodeLL<T>* head;
+    NodeLL<T>* tail;
 
 public:
-    // Конструктор по умолчанию для создания пустого списка
+    // Конструктор для создания пустого списка
     List() : head(nullptr), tail(nullptr) {}
 
-    // Конструктор для создания списка с одним элементом
+    // Конструктор с одним элементом
     List(T value)
     {
-        NodeLL<T>* startNode = new NodeLL<T>{ value, nullptr, nullptr };
+        NodeLL<T>* startNode = new NodeLL<T>(value);
         head = startNode;
         tail = startNode;
     }
 
-    // Деструктор для очистки списка
-    ~List()
-    {
-        NodeLL<T>* currentNode = head;
-        while (currentNode)
-        {
-            NodeLL<T>* curNext = currentNode->nextNode;
-            delete currentNode;
-            currentNode = curNext;
-        }
-        head = nullptr;
-        tail = nullptr;
-    }
+    // Деструктор
+    // ~List()
+    // {
+    //     while (head != nullptr)
+    //     {
+    //         NodeLL<T>* currentNode = head;
+    //         head = head->nextNode;
+    //         delete currentNode;
+    //     }
+    //     tail = nullptr;
+    // }
 
-    // Проверка на пустоту списка
-    bool isEmpty() const
+    // Проверка, пуст ли список
+    bool isEmpty()
     {
         return head == nullptr;
     }
 
     // Получение размера списка
-    int GetSize() const
+    int GetSize()
     {
         NodeLL<T>* currentNode = head;
         int size = 0;
-        while (currentNode)
+        while (currentNode != nullptr)
         {
             size++;
             currentNode = currentNode->nextNode;
@@ -66,12 +66,16 @@ public:
     // Добавление элемента в конец
     void AddToEnd(T value)
     {
-        NodeLL<T>* newNode = new NodeLL<T>{ value, tail, nullptr };
-        if (isEmpty()) {
+        NodeLL<T>* newNode = new NodeLL<T>(value);
+        if (isEmpty())
+        {
             head = newNode;
             tail = newNode;
-        } else {
+        }
+        else
+        {
             tail->nextNode = newNode;
+            newNode->previousNode = tail;
             tail = newNode;
         }
     }
@@ -79,42 +83,17 @@ public:
     // Добавление элемента в начало
     void AddToStart(T value)
     {
-        NodeLL<T>* newNode = new NodeLL<T>{ value, nullptr, head };
-        if (isEmpty()) {
+        NodeLL<T>* newNode = new NodeLL<T>(value);
+        if (isEmpty())
+        {
             head = newNode;
             tail = newNode;
-        } else {
+        }
+        else
+        {
+            newNode->nextNode = head;
             head->previousNode = newNode;
             head = newNode;
-        }
-    }
-
-    // Добавление в конец списка (LPUSH)
-    void LPUSH(T value)
-    {
-        AddToEnd(value);
-    }
-
-    // Добавление по индексу
-    void LPUSH(T value, int index)
-    {
-        if (index < 0 || index > GetSize()) {
-            std::cerr << "Index out of range!" << std::endl;
-            return;
-        }
-
-        if (index == GetSize()) {
-            AddToEnd(value);
-        } else if (index == 0) {
-            AddToStart(value);
-        } else {
-            NodeLL<T>* current = head;
-            for (int i = 0; i < index - 1; ++i) {
-                current = current->nextNode;
-            }
-            NodeLL<T>* newNode = new NodeLL<T>{ value, current, current->nextNode };
-            current->nextNode->previousNode = newNode;
-            current->nextNode = newNode;
         }
     }
 
@@ -123,14 +102,17 @@ public:
     {
         if (isEmpty()) return;
 
-        if (head == tail) { // Один элемент в списке
+        if (head == tail)  // Если в списке только один элемент
+        {
             delete head;
             head = nullptr;
             tail = nullptr;
-        } else {
+        }
+        else
+        {
             NodeLL<T>* prevNode = tail->previousNode;
-            prevNode->nextNode = nullptr;
             delete tail;
+            prevNode->nextNode = nullptr;
             tail = prevNode;
         }
     }
@@ -140,11 +122,14 @@ public:
     {
         if (isEmpty()) return;
 
-        if (head == tail) { // Один элемент в списке
+        if (head == tail)  // Если в списке только один элемент
+        {
             delete head;
             head = nullptr;
             tail = nullptr;
-        } else {
+        }
+        else
+        {
             NodeLL<T>* newHead = head->nextNode;
             newHead->previousNode = nullptr;
             delete head;
@@ -152,84 +137,111 @@ public:
         }
     }
 
-    // Удаление по индексу
-    void LDEL(int index)
+    // Удаление элемента по значению
+    void DeleteByValue(T value)
     {
-        if (index < 0 || index >= GetSize()) {
-            std::cerr << "Index out of range!" << std::endl;
-            return;
-        }
+        if (isEmpty()) return;
 
-        if (index == 0) {
-            DeleteFirst();
-        } else if (index == GetSize() - 1) {
-            DeleteLast();
-        } else {
-            NodeLL<T>* current = head;
-            for (int i = 0; i < index; ++i) {
-                current = current->nextNode;
-            }
-            current->previousNode->nextNode = current->nextNode;
-            current->nextNode->previousNode = current->previousNode;
-            delete current;
-        }
-    }
-
-    // Поиск элемента по значению
-    NodeLL<T>* Find(T value) const
-    {
         NodeLL<T>* currentNode = head;
-        while (currentNode)
+
+        while (currentNode != nullptr && currentNode->value != value)
         {
-            if (currentNode->value == value)
-            {
-                return currentNode;
-            }
             currentNode = currentNode->nextNode;
         }
-        return nullptr;
+
+        if (currentNode == nullptr) return;  // Элемент не найден
+
+        if (currentNode == head)
+        {
+            DeleteFirst();
+        }
+        else if (currentNode == tail)
+        {
+            DeleteLast();
+        }
+        else
+        {
+            NodeLL<T>* prev = currentNode->previousNode;
+            NodeLL<T>* next = currentNode->nextNode;
+            prev->nextNode = next;
+            next->previousNode = prev;
+            delete currentNode;
+        }
     }
+
+    // Добавление элемента (LPUSH) в конец
+    void LPUSH(T value)
+    {
+        AddToEnd(value);
+    }
+
+	void LDEL(int index)
+	{
+    if (isEmpty()) {
+        std::cerr << "List is empty!" << std::endl;
+        return;
+    }
+
+    if (index < 0 || index >= GetSize()) {
+        std::cerr << "Index out of range!" << std::endl;
+        return;
+    }
+
+    if (index == 0) {
+        DeleteFirst();
+    } else if (index == GetSize() - 1) {
+        DeleteLast();
+    } else {
+        NodeLL<T>* currentNode = head;
+        for (int i = 0; i < index; ++i) {
+            currentNode = currentNode->nextNode;
+        }
+        // Удаляем текущий узел
+        NodeLL<T>* prevNode = currentNode->previousNode;
+        NodeLL<T>* nextNode = currentNode->nextNode;
+
+        prevNode->nextNode = nextNode;
+        if (nextNode != nullptr) {
+            nextNode->previousNode = prevNode;
+        }
+
+        delete currentNode;
+    }
+	}
+
 
     // Получение элемента по индексу
-    T getElement(int index) const
+    T getElement(int index)
     {
-        if (isEmpty()) {
-            throw std::out_of_range("Empty list, no elements there!");
+        if (isEmpty())
+        {
+            std::cerr << "Empty list, no elements there!" << std::endl;
+            exit(-1);
         }
+        else if (index >= 0 && index < GetSize())
+        {
+            NodeLL<T>* currentNode = head;
+            for (int i = 0; i < index; i++)
+                currentNode = currentNode->nextNode;
 
-        if (index < 0 || index >= GetSize()) {
-            throw std::out_of_range("Index out of range!");
+            return currentNode->value;
         }
-
-        NodeLL<T>* currentNode = head;
-        for (int i = 0; i < index; i++) {
-            currentNode = currentNode->nextNode;
+        else
+        {
+            std::cerr << "Index out of range!" << std::endl;
+            exit(-1);
         }
-
-        return currentNode->value;
     }
 
-    // Печать списка в консоль
-    void Print() const
+    // Вывод элементов списка
+    void Print()
     {
         NodeLL<T>* currentNode = head;
-        while (currentNode)
+        while (currentNode != nullptr)
         {
             std::cout << currentNode->value << " ";
             currentNode = currentNode->nextNode;
         }
         std::cout << std::endl;
-    }
-
-    // Печать списка в файл
-    void PrintInFile(std::fstream& file) const
-    {
-        NodeLL<T>* currentNode = head;
-        while (currentNode)
-        {
-            file << currentNode->value << " ";
-            currentNode = currentNode->nextNode;
-        }
-        file << std::endl;
     }
 };
